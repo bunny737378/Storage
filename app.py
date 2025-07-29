@@ -76,26 +76,27 @@ async def dummy_server():
     app = web.Application()
     app.add_routes([web.get("/", handle)])
 
-    port = int(os.environ.get("PORT", 8000))  # Render provides PORT
+    port = int(os.environ.get("PORT", 8000))
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     print(f"🌐 Dummy server running on port {port}")
 
-# Main
+# Main entry point
 if __name__ == "__main__":
     print("🤖 Starting Telegram Bot...")
 
-    async def main():
-        # Start dummy HTTP server
-        asyncio.create_task(dummy_server())
+    loop = asyncio.get_event_loop()
 
-        # Start Telegram bot
-        app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO, handle_file))
-        print("✅ Bot is running and polling...")
-        await app.run_polling()
+    # Create bot app
+    tg_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    tg_app.add_handler(CommandHandler("start", start))
+    tg_app.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO, handle_file))
 
-    asyncio.run(main())
+    # Schedule both servers to run
+    loop.create_task(dummy_server())
+    loop.create_task(tg_app.run_polling())
+
+    print("✅ All services running...")
+    loop.run_forever()
