@@ -68,7 +68,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Main app
 if __name__ == "__main__":
+    print("🤖 Telegram Bot is starting...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO, handle_file))
+    print("✅ Bot is running and polling...")
     app.run_polling()
