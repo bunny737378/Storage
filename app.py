@@ -2,6 +2,8 @@ import os
 import logging
 import requests
 import base64
+import asyncio
+from aiohttp import web
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 from dotenv import load_dotenv
@@ -66,11 +68,34 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Send me any file, and I'll upload it to your GitHub `public/` folder!")
 
-# Main app
+# Dummy HTTP server for Render
+async def dummy_server():
+    async def handle(request):
+        return web.Response(text="🤖 Telegram Bot is running...")
+
+    app = web.Application()
+    app.add_routes([web.get("/", handle)])
+
+    port = int(os.environ.get("PORT", 8000))  # Render provides PORT
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"🌐 Dummy server running on port {port}")
+
+# Main
 if __name__ == "__main__":
-    print("🤖 Telegram Bot is starting...")
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO, handle_file))
-    print("✅ Bot is running and polling...")
-    app.run_polling()
+    print("🤖 Starting Telegram Bot...")
+
+    async def main():
+        # Start dummy HTTP server
+        asyncio.create_task(dummy_server())
+
+        # Start Telegram bot
+        app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO, handle_file))
+        print("✅ Bot is running and polling...")
+        await app.run_polling()
+
+    asyncio.run(main())
